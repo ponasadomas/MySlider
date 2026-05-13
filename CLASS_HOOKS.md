@@ -25,9 +25,13 @@ Rendered by `Slider`, `Slides`, `Slide`, and the framework chrome.
 | `.slider__header-logoHolder` | Optional `<div>` | Holds the logo when `sliderSettings.header.showLogo` is set |
 | `.slider__header-categoryHolder` | Optional `<div>` | Holds the current slide's category text |
 | `.slider__header-progressBarHolder` | Optional `<div>` | Holds the progress bar when positioned `top` |
+| `.slider__header-exitLink` | Optional `<a>` | Exit link (rendered when `sliderSettings.header.exitLink` is set). `label` accepts any ReactNode. |
+| `.slider__header-questionCount` | Optional `<p>` | "Question N of total" (rendered when `sliderSettings.header.showQuestionCount` is a function — consumer formats the markup; i18n is consumer-owned). |
+| `.slider__scroll-area` | `<div>` | Wraps `.slider__body` + `.slider__footer` — the natural scroll container when the consumer wants the footer to flow after the body instead of sitting at the viewport bottom. |
 | `.slider__body` | `<div>` | Slide viewport — where slides actually render |
 | `.slider__footer` | `<footer>` | Bottom UI bar (back button + bottom progress bar) |
 | `.slider__footer-content` | `<div>` inside `.slider__footer` | Inner alignment wrapper |
+| `.slider__footer-reassurance` | Optional `<p>` | Reassurance/privacy line below the footer-content row (rendered when `sliderSettings.footer.reassurance` is set; accepts any ReactNode). |
 | `.slider__slide-holder` | `<div>` per slide | Per-slide animation wrapper (absolutely positioned) |
 | `.slider__slide-container` | `<div>` inside `.slider__slide-holder` | Per-slide content container |
 | `.slider__slide-content` | `<div>` | Inner wrapper around the active layout |
@@ -113,6 +117,11 @@ Each layout has a top-level class matching its `slideType`, plus internal elemen
 
 ### SingleChoicePictureSlide / MultipleChoicePictureSlide
 - *v2 cleanup: add `.slider__singleChoicePictureSlide` and `.slider__multipleChoicePictureSlide`.*
+
+| Class | Role |
+|---|---|
+| `.slider__singleChoicePictureSlide-kicker` | Optional kicker line above the question (rendered when `slideContents.kicker` is set) |
+| `.slider__radioButton-inlineSvg` | Per-answer inline SVG wrapper (rendered when `answer.image` is `{ inlineSvg }`). The raw SVG is injected as a child, so `fill`/`stroke: currentColor` will inherit the wrapper's color and react to selected state. |
 
 ### SingleChoiceRankerSlide
 | Class | Role |

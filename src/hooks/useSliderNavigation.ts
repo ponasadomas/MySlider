@@ -11,6 +11,10 @@ import { useSliderVerticalAnimation } from '../animations/useSliderVerticalAnima
 import { useSliderHorizontalAnimation } from '../animations/useSliderHorizontalAnimation';
 import { useSliderFadeAnimation } from '../animations/useSliderFadeAnimation';
 import { useSliderNoneAnimation } from '../animations/useSliderNoneAnimation';
+import { useSliderCosmicBlurAnimation } from '../animations/useSliderCosmicBlurAnimation';
+import { useSliderVeilSweepAnimation } from '../animations/useSliderVeilSweepAnimation';
+import { useSliderStarDissolveAnimation } from '../animations/useSliderStarDissolveAnimation';
+import { useSliderSubtleScaleAnimation } from '../animations/useSliderSubtleScaleAnimation';
 
 export function useSliderNavigation() {
   const {
@@ -43,11 +47,19 @@ export function useSliderNavigation() {
   // needed.
 
   const animateSlide =
-  sliderSettings.navigation.slideAnimationDirection === 'vertical'
-    ? useSliderVerticalAnimation(handleAnimationComplete)
+    sliderSettings.navigation.slideAnimationDirection === 'vertical'
+      ? useSliderVerticalAnimation(handleAnimationComplete)
     : sliderSettings.navigation.slideAnimationDirection === 'none'
       ? useSliderNoneAnimation(handleAnimationComplete)
-      : useSliderHorizontalAnimation(handleAnimationComplete);
+    : sliderSettings.navigation.slideAnimationDirection === 'cosmicBlur'
+      ? useSliderCosmicBlurAnimation(handleAnimationComplete)
+    : sliderSettings.navigation.slideAnimationDirection === 'veilSweep'
+      ? useSliderVeilSweepAnimation(handleAnimationComplete)
+    : sliderSettings.navigation.slideAnimationDirection === 'starDissolve'
+      ? useSliderStarDissolveAnimation(handleAnimationComplete)
+    : sliderSettings.navigation.slideAnimationDirection === 'subtleScale'
+      ? useSliderSubtleScaleAnimation(handleAnimationComplete)
+    : useSliderHorizontalAnimation(handleAnimationComplete);
 
   const animateSpecialSlide = useSliderFadeAnimation(handleAnimationComplete);
 

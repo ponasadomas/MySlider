@@ -125,6 +125,11 @@ export function SingleChoicePictureSlide({
         <div className="slider__slide-content" ref={sliderRef}>
           <section className="slider__section" ref={sectionRef}>
             {renderImage()}
+            {slideContents.kicker && (
+              <p className="slider__singleChoicePictureSlide-kicker">
+                {slideContents.kicker}
+              </p>
+            )}
             {slideContents.subtext?.position === 'top' && (
               <p
                 className="slider__subtext-top"

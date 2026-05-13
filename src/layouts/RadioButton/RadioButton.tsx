@@ -10,10 +10,9 @@ interface RadioButtonProps {
     slideSlug: string;
     text: string;
     value: string;
-    image?: {
-      svg: string;
-      alt?: string;
-    };
+    image?:
+      | { svg: string; alt?: string }
+      | { inlineSvg: string };
   };
 }
 
@@ -112,7 +111,14 @@ export function RadioButton({ answerData }: RadioButtonProps) {
           transition:
             'transform 0.15s ease, box-shadow 0.222s ease, border 0.2s ease'
         }}>
-        {answerData.image && (
+        {answerData.image && 'inlineSvg' in answerData.image && (
+          <span
+            className="slider__radioButton-inlineSvg"
+            aria-hidden="true"
+            dangerouslySetInnerHTML={{ __html: answerData.image.inlineSvg }}
+          />
+        )}
+        {answerData.image && 'svg' in answerData.image && (
           <img
             src={answerData.image.svg}
             alt={answerData.image.alt || ''}

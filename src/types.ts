@@ -78,12 +78,13 @@ export type SlideType_SingleChoice = SlideType_Defaults & {
 export type SlideType_SingleChoicePicture = SlideType_Defaults & {
   type: 'singleChoicePicture';
   layout: 'vertical' | 'horizontal';
+  kicker?: string;
   question: string;
   subtext?: SlideType_Subtext;
   answers: {
     text: string;
     value: string;
-    image?: { svg: string; alt?: string };
+    image?: { svg: string; alt?: string } | { inlineSvg: string };
   }[];
   image?: SlideType_ResponsiveImage | SlideType_SvgImage;
 };
@@ -297,10 +298,36 @@ export type SliderSettingsType = {
   header: {
     showLogo: false | { svg: string; alt: string };
     showQuestionCategory: boolean;
+    /**
+     * Render "Question N of Total" text in the header. Pass a function that
+     * receives the 1-based slide number + total and returns the rendered
+     * node (any markup). i18n is the consumer's responsibility.
+     */
+    showQuestionCount?: false | ((n: number, total: number) => React.ReactNode);
+    /**
+     * Render an exit link in the header. `label` accepts any ReactNode so
+     * the consumer can include an icon/SVG alongside the text.
+     */
+    exitLink?: { href: string; label: React.ReactNode };
+  };
+  footer?: {
+    /**
+     * Reassurance line (e.g. privacy note) rendered below the footer's
+     * back-button row. Accepts any ReactNode so the consumer can pair an
+     * icon with the text.
+     */
+    reassurance?: React.ReactNode;
   };
   navigation: {
     skippingAllowed: boolean;
-    slideAnimationDirection: 'vertical' | 'horizontal' | 'none';
+    slideAnimationDirection:
+      | 'vertical'
+      | 'horizontal'
+      | 'none'
+      | 'cosmicBlur'
+      | 'veilSweep'
+      | 'starDissolve'
+      | 'subtleScale';
     type: '#' | '/';
     clickDelay: number;
     progressBar?: { position: 'top' | 'bottom' };

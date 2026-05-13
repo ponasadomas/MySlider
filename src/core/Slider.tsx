@@ -8,6 +8,8 @@ import { useUrlChangeEffect } from '../hooks/useUrlChangeEffect';
 import { Slides } from './Slides';
 import { ProgressBar } from '../components/ProgressBar/ProgressBar';
 import { Button } from '../components/Button/Button';
+import { getCurrentSlideSlugFromUrl } from '../utils/getCurrentSlideSlugFromUrl';
+import { getSlideIndex } from '../utils/getSlideIndex';
 
 export function Slider({
   showLoadingScreen
@@ -26,8 +28,22 @@ export function Slider({
     sliderTransition,
     setSliderTransition,
     hideUIElements,
-    sliderSettings
+    sliderSettings,
+    sliderFlow
   } = useSliderContext();
+
+  // 1-based current slide number for the optional questionCount renderer.
+  // Uses URL-derived slug to stay in sync with the progress bar, which uses
+  // the same source for the same reason (faster than React state).
+  const currentSlideSlugFromUrl = getCurrentSlideSlugFromUrl(
+    sliderSettings.navigation.type,
+    sliderSettings.startPath
+  );
+  const currentSlideIndex = Math.max(
+    0,
+    getSlideIndex(currentSlideSlugFromUrl, sliderFlow)
+  );
+  const questionNumber = currentSlideIndex + 1;
 
   useEffect(() => {
     // This handleBackNavigation function handles cases when user finished the
@@ -88,6 +104,23 @@ export function Slider({
                 </div>
               )}
 
+              {sliderSettings.header.exitLink && (
+                <a
+                  className="slider__header-exitLink"
+                  href={sliderSettings.header.exitLink.href}>
+                  {sliderSettings.header.exitLink.label}
+                </a>
+              )}
+
+              {sliderSettings.header.showQuestionCount && (
+                <p className="slider__header-questionCount">
+                  {sliderSettings.header.showQuestionCount(
+                    questionNumber,
+                    totalSlidesNumber
+                  )}
+                </p>
+              )}
+
               {sliderSettings.header.showQuestionCategory && (
                 <div className="slider__header-categoryHolder">
                   <p>{currentSlideCategory}</p>
@@ -104,30 +137,37 @@ export function Slider({
               )}
             </div>
           </header>
-          <div
-            className={`slider__body ${
-              disableMouseEvents ? 'slider__disableEvents' : ''
-            }`}>
-            <Slides></Slides>
-          </div>
-          <footer
-            className={`slider__footer ${
-              hideUIElements ? 'slider__UIElement-hide' : ''
-            }`}>
-            <div className="slider__footer-content">
-              <Button transparent animate navigation="back" addContainer>
-                Back
-              </Button>
-              {sliderSettings.navigation.progressBar?.position !== 'top' && (
-                <ProgressBar
-                  totalSlidesNumber={totalSlidesNumber}
-                  position={
-                    sliderSettings.navigation.progressBar?.position ?? 'bottom'
-                  }
-                />
-              )}
+          <div className="slider__scroll-area">
+            <div
+              className={`slider__body ${
+                disableMouseEvents ? 'slider__disableEvents' : ''
+              }`}>
+              <Slides></Slides>
             </div>
-          </footer>
+            <footer
+              className={`slider__footer ${
+                hideUIElements ? 'slider__UIElement-hide' : ''
+              }`}>
+              <div className="slider__footer-content">
+                <Button transparent animate navigation="back" addContainer>
+                  Back
+                </Button>
+                {sliderSettings.navigation.progressBar?.position !== 'top' && (
+                  <ProgressBar
+                    totalSlidesNumber={totalSlidesNumber}
+                    position={
+                      sliderSettings.navigation.progressBar?.position ?? 'bottom'
+                    }
+                  />
+                )}
+              </div>
+              {sliderSettings.footer?.reassurance && (
+                <p className="slider__footer-reassurance">
+                  {sliderSettings.footer.reassurance}
+                </p>
+              )}
+            </footer>
+          </div>
         </form>
       </main>
     </>
