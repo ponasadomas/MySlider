@@ -69,9 +69,21 @@ type SlideType_FlatResponsiveImage = {
 export type SlideType_SingleChoice = SlideType_Defaults & {
   type: 'singleChoice';
   layout: 'vertical' | 'horizontal';
+  kicker?: string;
   question: string;
   subtext?: SlideType_Subtext;
-  answers: { text: string; value: string }[];
+  answers: {
+    text: string;
+    value: string;
+    /** When set, choosing this answer reveals a text input — what the user
+     *  types becomes the submitted answer value. Any answer carrying
+     *  `specify` switches the whole slide to Continue-button mode: clicking
+     *  an answer selects it, the button advances (the user may need to type
+     *  first, so it can't advance on the click). */
+    specify?: { placeholder?: string };
+  }[];
+  /** Continue button label — only rendered in `specify` (button) mode. */
+  buttonText?: string;
   image?: SlideType_ResponsiveImage | SlideType_SvgImage;
 };
 
@@ -92,6 +104,7 @@ export type SlideType_SingleChoicePicture = SlideType_Defaults & {
 export type SlideType_MultipleChoice = SlideType_Defaults & {
   type: 'multipleChoice';
   layout: 'vertical' | 'horizontal';
+  kicker?: string;
   question: string;
   subtext?: SlideType_Subtext;
   answers: { text: string; value: string }[];
@@ -134,6 +147,23 @@ export type SlideType_OpenEndedQuestion = SlideType_Defaults & {
   placeholder: string;
 };
 
+export type SlideType_TextInput = SlideType_Defaults & {
+  type: 'textInput';
+  kicker?: string;
+  question: string;
+  subtext?: SlideType_Subtext;
+  /** Small caption shown above the input. */
+  inputLabel?: string;
+  inputPlaceholder?: string;
+  /** HTML input `type` — defaults to `'text'`. */
+  inputType?: 'text' | 'email' | 'tel' | 'url';
+  /** Maps to the input's `autocomplete` attribute, e.g. `'given-name'`. */
+  autoComplete?: string;
+  /** Minimum trimmed length required to enable the button (default 1). */
+  minLength?: number;
+  buttonText?: string;
+};
+
 export type SlideType_CopyBlock = SlideType_Defaults & {
   type: 'copyBlock';
   headline: string;
@@ -162,8 +192,17 @@ export type SlideType_HeadlineBlock = SlideType_Defaults & {
 export type SlideType_Email = SlideType_Defaults & {
   type: 'emailSlide';
   image?: SlideType_ResponsiveImage;
+  kicker?: string;
   headline: string;
   subtext?: SlideType_Subtext;
+  /** Caption shown above the email input. Defaults to "Enter your email". */
+  inputLabel?: string;
+  /** Placeholder text inside the email input. */
+  inputPlaceholder?: string;
+  /** Optional consent checkbox. When set, the forward button stays disabled
+   *  until the box is ticked. `text` may contain HTML (links, <strong>, …).
+   *  This is a UI gate only — the consent value is not stored or submitted. */
+  consent?: { text: string };
   policyText?: { text: string; position: 'top' | 'bottom' };
   emailMarketingService: {
     listId: number | string;
@@ -197,6 +236,24 @@ export type SlideType_CalculatingSlide = SlideType_Defaults & {
       done?: string;
     };
   }[];
+};
+
+/** Generic, fully skinnable loading screen. MySlider owns only the timing,
+ *  the message cycle, the hide-chrome behaviour and the auto-advance once
+ *  the last message has shown — the consuming project owns 100% of the look
+ *  via the `.slider__loadingSlide*` hooks (decorate `-stage` with whatever
+ *  visual fits the brand). Add `'loadingSlide'` to `sliderLogic.specialSlideTypes`
+ *  so it gets the fade transition rather than the standard slide animation. */
+export type SlideType_LoadingSlide = SlideType_Defaults & {
+  type: 'loadingSlide';
+  /** Optional persistent headline shown above the cycling messages. */
+  title?: string;
+  /** Copy that fades in and out in sequence. The slide auto-advances once
+   *  the last message has been shown. */
+  messages: string[];
+  /** Seconds each message occupies — fade-in, hold and fade-out included
+   *  (default `2.5`). */
+  messageDuration?: number;
 };
 
 export type SlideType_ReviewItem = {
@@ -253,6 +310,40 @@ export type SlideType_AudioPlayer = SlideType_Defaults & {
   audioFile: string;
 };
 
+export type SlideType_BirthDay = SlideType_Defaults & {
+  type: 'birthDay';
+  kicker?: string;
+  question: string;
+  subtext?: SlideType_Subtext;
+  /** Script-style label inside the date card, e.g. "Select your birth date". */
+  dobLabel?: string;
+  /** Caption + empty-option text for each select. */
+  fieldLabels: { day: string; month: string; year: string };
+  /** 12 month names, index 0 = January. Consumer-owned for i18n. */
+  monthNames: string[];
+  /** Optional hint line below the selects, shown once all three fields
+   *  are set. `complete` is either a `{day}`/`{month}`/`{year}` token
+   *  string, or a function of the entered date — the latter lets the
+   *  consuming project derive copy (zodiac signs, age, …) without MySlider
+   *  knowing anything about it. */
+  hint?: {
+    idle: string;
+    complete:
+      | string
+      | ((date: {
+          day: number;
+          month: number;
+          year: number;
+          iso: string;
+        }) => string);
+  };
+  /** Youngest age offered — caps the newest year (default 13). */
+  minAge?: number;
+  /** Oldest year offered (default 1920). */
+  minYear?: number;
+  buttonText?: string;
+};
+
 export type SlideTypes =
   | SlideType_SingleChoice
   | SlideType_SingleChoicePicture
@@ -261,7 +352,9 @@ export type SlideTypes =
   | SlideType_MultipleChoicePicture
   | SlideType_BreatherSlide
   | SlideType_CalculatingSlide
+  | SlideType_LoadingSlide
   | SlideType_OpenEndedQuestion
+  | SlideType_TextInput
   | SlideType_Email
   | SlideType_ReviewsFacebook
   | SlideType_CopyBlock
@@ -270,7 +363,8 @@ export type SlideTypes =
   | SlideType_PhoneNumber
   | SlideType_CtaSlide
   | SlideType_TrialPrice
-  | SlideType_AudioPlayer;
+  | SlideType_AudioPlayer
+  | SlideType_BirthDay;
 
 export type SliderDataTypes = SlideTypes[];
 

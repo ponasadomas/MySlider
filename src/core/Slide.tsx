@@ -1,5 +1,6 @@
 import React from 'react';
 import { useSliderContext } from './useSliderContext';
+import { Footer } from './Footer';
 import type { SlideTypes } from '../types';
 
 interface SlideProps {
@@ -39,6 +40,7 @@ export function Slide({ singleSlideData, refIndex }: SlideProps) {
       <div className="slider__slide-container">
         <SelectedSlideComponent slideContents={singleSlideData} />
       </div>
+      <Footer />
     </div>
   );
 }

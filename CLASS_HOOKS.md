@@ -82,6 +82,10 @@ Composed via `classNames()` — multiple modifiers can stack.
 | `.slider__ripple` | Material-style ripple span |
 | `.slider__ripple-active` | Ripple in active phase |
 
+**Disabled-click nudge:**
+
+Pass `onDisabledClick` to a `Button` and a `disabled` button stays clickable (no native `disabled` attr — just `aria-disabled="true"` + `.slider__button-disabled`); clicks while disabled route to that callback instead of navigating. Layout slides pair it with the `useNudge()` hook: clicking a disabled Continue button toggles `.is-nudged` for ~600ms on whatever element is blocking submission (the text/specify field, the date row, the email or consent box, the multipleChoice list). MySlider only toggles the class — the consuming project's CSS decides what `.is-nudged` looks like (a shake, a glow…).
+
 ## §4. Progress bar (`ProgressBar`)
 
 | Class | Role |
@@ -114,6 +118,14 @@ Each layout has a top-level class matching its `slideType`, plus internal elemen
 ### SingleChoiceSlide / MultipleChoiceSlide
 - (No layout-specific class in v1 — use the form primitives in §5 to style.)
 - *v2 cleanup: add `.slider__singleChoiceSlide` and `.slider__multipleChoiceSlide` for consistency with the rest.*
+
+| Class | Role |
+|---|---|
+| `.slider__singleChoiceSlide-kicker` | Optional kicker line above the question (rendered when `slideContents.kicker` is set) |
+| `.slider__multipleChoiceSlide-kicker` | Optional kicker line above the question (rendered when `slideContents.kicker` is set) |
+| `.slider__radioButton-specify` | Modifier on the `<li>` of a SingleChoice answer carrying `specify` — wraps the answer label + its reveal field |
+| `.slider__radioButton-specifyField` | The collapsible wrapper around the "please specify" text `<input>` (rendered for a `specify` answer; reveal it via `:has(input[type='radio']:checked)`) |
+| `.slider__buttonContainer` / `.slider__button-forward` | The Continue button — rendered **only** while the `specify` answer is the current selection. Plain answers advance on click as usual; the `specify` answer reveals its field + this button instead, and the button submits the typed text. |
 
 ### SingleChoicePictureSlide / MultipleChoicePictureSlide
 - *v2 cleanup: add `.slider__singleChoicePictureSlide` and `.slider__multipleChoicePictureSlide`.*
@@ -149,8 +161,25 @@ Each layout has a top-level class matching its `slideType`, plus internal elemen
 | Class | Role |
 |---|---|
 | `.slider__emailSlide` | Root |
-| `.slider__emailSlide-form` | Form wrapper |
-| `.slider__emailSlide-policyText` | Privacy/policy text |
+| `.slider__emailSlide-kicker` | Optional kicker line above the headline (rendered when `kicker` is set) |
+| `.slider__emailSlide-card` | Framed card wrapping the email field + consent checkbox |
+| `.slider__emailSlide-field` | The email `<label>` — caption + input row |
+| `.slider__emailSlide-fieldCaption` | Caption above the input (`inputLabel`) |
+| `.slider__emailSlide-fieldRow` | Row wrapping the `<input>` (host for a decorative icon) |
+| `.slider__emailSlide-consent` | Consent `<label>` — checkbox + box + text (rendered when `consent` is set) |
+| `.slider__emailSlide-consentBox` | Styled checkbox indicator (sibling of the visually-hidden `<input>`) |
+| `.slider__emailSlide-consentText` | Consent label text (may contain HTML) |
+| `.slider__emailSlide-policyText` | Privacy/policy text (rendered when `policyText` is set) |
+
+### TextInputSlide
+| Class | Role |
+|---|---|
+| `.slider__textInputSlide` | Root |
+| `.slider__textInputSlide-kicker` | Optional kicker line above the question (rendered when `kicker` is set) |
+| `.slider__textInputSlide-card` | Framed card wrapping the input field |
+| `.slider__textInputSlide-field` | The input `<label>` — caption + input row |
+| `.slider__textInputSlide-fieldCaption` | Caption above the input (rendered when `inputLabel` is set) |
+| `.slider__textInputSlide-fieldRow` | Row wrapping the `<input>` (host for a decorative icon) |
 
 ### PhoneNumberSlide
 | Class | Role |
@@ -158,6 +187,20 @@ Each layout has a top-level class matching its `slideType`, plus internal elemen
 | `.slider__phoneNumberSlide` | Root |
 | `.slider__phoneNumberSlide-form` | Form wrapper |
 | `.slider__phoneNumberSlide-caption` | Caption text |
+
+### BirthDaySlide
+| Class | Role |
+|---|---|
+| `.slider__birthDaySlide` | Root |
+| `.slider__birthDaySlide-kicker` | Optional kicker line above the question (rendered when `slideContents.kicker` is set) |
+| `.slider__birthDaySlide-card` | Framed card wrapping the day/month/year selects |
+| `.slider__birthDaySlide-label` | Script label inside the card (rendered when `dobLabel` is set) |
+| `.slider__birthDaySlide-grid` | 3-up grid holding the day / month / year fields |
+| `.slider__birthDaySlide-field` | One `<label>` field wrapper — caption + `<select>` + caret |
+| `.slider__birthDaySlide-fieldCaption` | Small uppercase caption above each select |
+| `.slider__birthDaySlide-caret` | Decorative dropdown caret (`pointer-events: none`) |
+| `.slider__birthDaySlide-hint` | Optional hint line below the selects (rendered when `hint` is set) |
+| `.slider__birthDaySlide-hint-complete` | Modifier on the hint, applied once all three fields are filled |
 
 ### OpenEndedQuestionSlide
 | Class | Role |
@@ -197,6 +240,19 @@ Each layout has a top-level class matching its `slideType`, plus internal elemen
 | `.slider__calculatingSlide-progressBar--container` | Bar container *(BEM `--` modifier syntax — inconsistent with rest)* |
 | `.slider__calculatingSlide-progressBar--bar` | The bar |
 | `.slider__calculatingSlide-progressBar--dot` | The dot |
+
+### LoadingSlide
+Generic, fully skinnable loading screen — MySlider ships only the behaviour (message cycle, timing, hide-chrome, one-shot auto-advance once the last message has shown). The consuming project owns every visual. Add `'loadingSlide'` to `sliderLogic.specialSlideTypes` so it gets the fade transition.
+
+The behaviour is the `useLoadingSequence(slideContents)` hook (exported from the package root) — `LoadingSlide` is the plain default that renders it. For visuals CSS can't express on the empty `-stage` div (extra DOM layers, orbiting elements…), a consuming project can register its **own** component for the `loadingSlide` type and build it on the same hook.
+
+| Class | Role |
+|---|---|
+| `.slider__loadingSlide` | Root |
+| `.slider__loadingSlide-content` | Content wrapper |
+| `.slider__loadingSlide-stage` | Empty styling hook — decorate with the loader visual (CSS animation, background, SVG…). MySlider renders nothing inside it. |
+| `.slider__loadingSlide-title` | Optional persistent headline (rendered when `slideContents.title` is set) |
+| `.slider__loadingSlide-message` | The current cycling message. Gets `.is-visible` toggled on/off so CSS can fade it — the fade-out `transition` should be ≤ ~450ms to finish inside its slot. |
 
 ### TrialPriceSlide
 | Class | Role |

@@ -1,7 +1,12 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { RadioButton } from '../RadioButton/RadioButton';
+import { Button } from '../../components/Button/Button';
 import { ResponsiveImageOutput } from '../../components/ResponsiveImageOutput/ResponsiveImageOutput';
 import { SlideType_SingleChoice } from '../../types';
+import { useHandleAnswer } from '../../hooks/useHandleAnswer';
+import { useUpdateSliderAnswers } from '../../hooks/useUpdateSliderAnswers';
+import { useNudge } from '../../hooks/useNudge';
+import { useSliderContext } from '../../core/useSliderContext';
 
 interface SingleChoiceSlideProps {
   slideContents: SlideType_SingleChoice;
@@ -11,6 +16,15 @@ export function SingleChoiceSlide({ slideContents }: SingleChoiceSlideProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const sliderRef = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
+
+  const { sliderAnswers, sliderSettings } = useSliderContext();
+  const handleAnswer = useHandleAnswer();
+  const updateSliderAnswers = useUpdateSliderAnswers();
+
+  // Clicking the disabled Continue button shakes the "please specify" field —
+  // a wordless hint that it still needs filling in. Only reachable in specify
+  // mode, since that's the only time this slide shows a Continue button.
+  const { nudged, nudge } = useNudge();
 
   const calculateHeights = useCallback(() => {
     if (
@@ -66,6 +80,51 @@ export function SingleChoiceSlide({ slideContents }: SingleChoiceSlideProps) {
     };
   }, [calculateHeights]);
 
+  // Does any answer open a "please specify" text field? If so, that one
+  // answer alone gets special handling: choosing it reveals an inline text
+  // field plus a Continue button instead of advancing, since the user has
+  // to type first. Every *other* answer still advances the instant it's
+  // chosen — exactly like a slide with no specify answer at all.
+  const answers = slideContents?.answers ?? [];
+  const specifyAnswer = answers.find((a) => a.specify);
+  const hasSpecify = !!specifyAnswer;
+
+  // Button-mode state. `selectedValue` is the chosen answer's `value`;
+  // `specifyText` is what the user typed for the specify answer.
+  const [selectedValue, setSelectedValue] = useState('');
+  const [specifyText, setSpecifyText] = useState('');
+  const isSpecifySelected =
+    !!specifyAnswer && selectedValue === specifyAnswer.value;
+
+  // Restore a prior selection. A plain answer is stored as its `value`; the
+  // specify answer is stored as the typed text — so anything that isn't a
+  // plain answer value is treated as the specify text.
+  useEffect(() => {
+    if (!slideContents || !hasSpecify) return;
+    const stored = sliderAnswers[slideContents.slug];
+    if (typeof stored !== 'string' || !stored) return;
+    const plain = answers.find((a) => !a.specify && a.value === stored);
+    if (plain) {
+      setSelectedValue(stored);
+      setSpecifyText('');
+    } else if (specifyAnswer) {
+      setSelectedValue(specifyAnswer.value);
+      setSpecifyText(stored);
+    }
+  }, [sliderAnswers, slideContents?.slug]);
+
+  // Persist on every change so a selection survives back-navigation —
+  // `handleAnswer` only writes on submit. Depends only on the state values:
+  // `updateSliderAnswers` is a fresh closure each render and must not be a
+  // dependency.
+  useEffect(() => {
+    if (!slideContents || !hasSpecify) return;
+    updateSliderAnswers(
+      slideContents.slug,
+      isSpecifySelected ? specifyText.trim() : selectedValue
+    );
+  }, [selectedValue, specifyText]);
+
   if (!slideContents) {
     console.warn('No slideContents provided to SingleChoiceSlide component');
     return null;
@@ -76,6 +135,7 @@ export function SingleChoiceSlide({ slideContents }: SingleChoiceSlideProps) {
     slideContents.answers[0].text.toLowerCase() === 'yes' &&
     slideContents.answers[1].text.toLowerCase() === 'no';
 
+  // ── Advance-on-click mode (no specify answer) — unchanged ──
   const renderAnswers = slideContents.answers.map((item, index) => {
     const answerData = {
       id: `${slideContents.slug}-${index + 1}`,
@@ -87,6 +147,73 @@ export function SingleChoiceSlide({ slideContents }: SingleChoiceSlideProps) {
     return (
       <li key={index} className="slider__radioButton">
         <RadioButton answerData={answerData} />
+      </li>
+    );
+  });
+
+  // ── Specify mode (a specify answer is present) ──
+  // The Continue button only appears once the specify answer is chosen, so
+  // submitting just needs non-empty text in the field.
+  const canSubmit = specifyText.trim().length > 0;
+
+  const handleContinue = () => {
+    if (!canSubmit) return;
+    handleAnswer(slideContents.slug, specifyText.trim());
+  };
+
+  const renderAnswersWithSpecify = slideContents.answers.map((item, index) => {
+    const id = `${slideContents.slug}-${index + 1}`;
+    const checked = selectedValue === item.value;
+
+    return (
+      <li
+        key={index}
+        className={`slider__radioButton${
+          item.specify ? ' slider__radioButton-specify' : ''
+        }`}>
+        <input
+          type="radio"
+          name={slideContents.slug}
+          id={id}
+          value={item.value}
+          checked={checked}
+          onChange={() => {
+            setSelectedValue(item.value);
+            // A plain answer behaves like normal singleChoice — advance at
+            // once. The specify answer instead reveals its field and the
+            // Continue button below, so it must not advance here.
+            if (!item.specify) {
+              setTimeout(
+                () => handleAnswer(slideContents.slug, item.value),
+                sliderSettings.navigation.clickDelay
+              );
+            }
+          }}
+        />
+        <label htmlFor={id}>
+          <div>
+            <span>{item.text}</span>
+          </div>
+        </label>
+        {item.specify && (
+          <div
+            className={`slider__radioButton-specifyField${
+              nudged ? ' is-nudged' : ''
+            }`}>
+            <input
+              type="text"
+              name={`${slideContents.slug}-specify`}
+              placeholder={item.specify.placeholder || ''}
+              value={specifyText}
+              autoComplete="off"
+              onChange={(event) => {
+                setSpecifyText(event.target.value);
+                // Typing in the field selects its answer (mirrors the mockup).
+                if (!checked) setSelectedValue(item.value);
+              }}
+            />
+          </div>
+        )}
       </li>
     );
   });
@@ -126,6 +253,11 @@ export function SingleChoiceSlide({ slideContents }: SingleChoiceSlideProps) {
         <div className="slider__slide-content" ref={sliderRef}>
           <section className="slider__section" ref={sectionRef}>
             {renderImage()}
+            {slideContents.kicker && (
+              <p className="slider__singleChoiceSlide-kicker">
+                {slideContents.kicker}
+              </p>
+            )}
             {slideContents.subtext?.position === 'top' && (
               <p
                 className="slider__subtext-top"
@@ -146,8 +278,21 @@ export function SingleChoiceSlide({ slideContents }: SingleChoiceSlideProps) {
             className={`slider__singleChoice ${
               isYesNoType ? 'slider__singleChoice-yesno' : ''
             }`}>
-            {renderAnswers}
+            {hasSpecify ? renderAnswersWithSpecify : renderAnswers}
           </ul>
+          {isSpecifySelected && (
+            <Button
+              primary
+              flat
+              navigation="forward"
+              disabled={!canSubmit}
+              onDisabledClick={nudge}
+              animate={sliderSettings.buttonAnimation}
+              addContainer
+              onClick={handleContinue}>
+              {slideContents.buttonText || 'Continue'}
+            </Button>
+          )}
         </div>
       </div>
     </div>

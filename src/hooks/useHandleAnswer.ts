@@ -58,27 +58,19 @@ export const useHandleAnswer = () => {
 
     // 2.3 We scroll to the screen's top, to avoid weird behavior when user
     //     clicks a button and the screen is scrolled down.
-    const smoothScrollToTop = () => {
-      // Select the element with the class '.slider__container'
-      const sliderContainer = document.querySelector('.slider__slide-container > div');
-
-      if (sliderContainer) {
-        // Check if we're already at the top
-        if (sliderContainer.scrollTop > 0) {
-          // Smooth scroll to the top of the '.slider__container'
-          sliderContainer.scrollTo({
-            top: 0,
-            left: 0,
-            behavior: 'smooth'
-          });
-        }
-      } else {
-        console.error('Slider container not found');
+    const scrollToTop = () => {
+      // `.slider__scroll-area` is the slider's scroll container. Reset it to
+      // the top instantly — if the user scrolled down a tall slide to reach
+      // the button, the next slide must not be revealed mid-scroll, and an
+      // instant reset (vs. a smooth one) avoids racing the slide transition.
+      const scrollArea = document.querySelector('.slider__scroll-area');
+      if (scrollArea) {
+        scrollArea.scrollTop = 0;
       }
     };
 
     // Call the function to scroll to the top
-    smoothScrollToTop();
+    scrollToTop();
 
     // 3. After all of that, we start animation to next slide if it's not the
     //    last slide in the sliderFlow

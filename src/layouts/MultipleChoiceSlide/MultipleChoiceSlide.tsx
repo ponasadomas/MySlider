@@ -9,6 +9,7 @@ import { SlideType_MultipleChoice } from '../../types';
 
 import { useHandleAnswer } from '../../hooks/useHandleAnswer';
 import { useUpdateSliderAnswers } from '../../hooks/useUpdateSliderAnswers';
+import { useNudge } from '../../hooks/useNudge';
 import { useSliderContext } from '../../core/useSliderContext';
 import { ResponsiveImageOutput } from '../../components/ResponsiveImageOutput/ResponsiveImageOutput';
 
@@ -108,6 +109,10 @@ export function MultipleChoiceSlide({
   const [disableButton, setDisableButton] = useState(true);
   const handleAnswer = useHandleAnswer();
   const updateSliderAnswers = useUpdateSliderAnswers();
+
+  // Clicking the disabled Continue button glow-pulses the whole choice list —
+  // shaking every checkbox would be too busy, so the group is cued as one.
+  const { nudged, nudge } = useNudge();
 
   // Persist checkbox state on every change so navigating away (e.g. clicking
   // Back) doesn't lose the user's partial selection.
@@ -227,6 +232,11 @@ export function MultipleChoiceSlide({
       <div className={sliderClassName} ref={parentRef}>
         <div className="slider__slide-content" ref={sliderRef}>
           <section className="slider__section" ref={sectionRef}>
+            {slideContents.kicker && (
+              <p className="slider__multipleChoiceSlide-kicker">
+                {slideContents.kicker}
+              </p>
+            )}
             {slideContents.subtext?.position === 'top' && (
               <p
                 className="slider__subtext-top"
@@ -245,7 +255,10 @@ export function MultipleChoiceSlide({
             )}
           </section>
           <div className="slider__checkboxHolder">
-            <ul className="slider__multipleChoiceSlide-list">
+            <ul
+              className={`slider__multipleChoiceSlide-list${
+                nudged ? ' is-nudged' : ''
+              }`}>
               {renderCheckboxes}
               {renderNoneOption()}
             </ul>
@@ -254,6 +267,7 @@ export function MultipleChoiceSlide({
               flat
               navigation="forward"
               disabled={disableButton}
+              onDisabledClick={nudge}
               animate={sliderSettings.buttonAnimation}
               addContainer
               onClick={() => handleAnswer(slideContents.slug, checkedAnswers)}>

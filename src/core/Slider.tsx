@@ -144,29 +144,6 @@ export function Slider({
               }`}>
               <Slides></Slides>
             </div>
-            <footer
-              className={`slider__footer ${
-                hideUIElements ? 'slider__UIElement-hide' : ''
-              }`}>
-              <div className="slider__footer-content">
-                <Button transparent animate navigation="back" addContainer>
-                  Back
-                </Button>
-                {sliderSettings.navigation.progressBar?.position !== 'top' && (
-                  <ProgressBar
-                    totalSlidesNumber={totalSlidesNumber}
-                    position={
-                      sliderSettings.navigation.progressBar?.position ?? 'bottom'
-                    }
-                  />
-                )}
-              </div>
-              {sliderSettings.footer?.reassurance && (
-                <p className="slider__footer-reassurance">
-                  {sliderSettings.footer.reassurance}
-                </p>
-              )}
-            </footer>
           </div>
         </form>
       </main>

@@ -15,6 +15,11 @@ interface ButtonProps {
   secondary?: boolean;
   transparent?: boolean;
   disabled?: boolean;
+  /** Called when the button is clicked *while disabled*. Supplying this keeps
+   *  the button clickable (no native `disabled` attr, just `aria-disabled`) so
+   *  the click can be caught — use it to nudge the user toward whatever is
+   *  still blocking submission. Without it, `disabled` behaves natively. */
+  onDisabledClick?: () => void;
   disposable?: boolean;
   addContainer?: boolean;
   onClick?: React.MouseEventHandler<HTMLButtonElement | HTMLAnchorElement>;
@@ -35,6 +40,7 @@ export function Button({
   secondary,
   transparent,
   disabled,
+  onDisabledClick,
   disposable,
   onClick,
   children,
@@ -103,6 +109,13 @@ export function Button({
   const handleClick = (
     event: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>
   ) => {
+    // Disabled but still clickable (an `onDisabledClick` was supplied) — route
+    // the click there instead of rippling, calling `onClick`, or navigating.
+    if (disabled) {
+      onDisabledClick?.();
+      return;
+    }
+
     rippleHandleClick(event);
 
     if (navigation === 'forward') {
@@ -152,7 +165,11 @@ export function Button({
     <button
       type="button"
       className={classnames}
-      disabled={disabled}
+      // With an `onDisabledClick` handler the button must stay clickable, so
+      // it's only natively `disabled` without one. `aria-disabled` always
+      // reflects the real state for assistive tech.
+      disabled={disabled && !onDisabledClick}
+      aria-disabled={disabled || undefined}
       onClick={handleClick}
       onPointerDown={() => setIsButtonClicked(true)} // Update state on Pointer down
       onPointerUp={() => setIsButtonClicked(false)} // Update state on Pointer up
