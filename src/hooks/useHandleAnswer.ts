@@ -48,6 +48,11 @@ export const useHandleAnswer = () => {
     if (answerValue !== null) {
       // 2.1 Update sliderAnswers with the new user's answer
       updatedSliderAnswers = updateSliderAnswers(slideSlug, answerValue);
+
+      // 2.1b Notify consumers (e.g. userProfile syncing). Fires on every
+      //      real answer including re-answers, never for null-valued
+      //      automated submissions.
+      sliderSettings.onAnswer?.(slideSlug, answerValue);
     }
 
     // 2.2 We then update our Slider flow with logic described in slider logic

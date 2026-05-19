@@ -435,6 +435,13 @@ export type SliderSettingsType = {
     submitDataApi: string;
     receiveDataApi: string;
   };
+  /**
+   * Fires every time the user commits an answer (incl. re-answering after
+   * going back). Consumers use it to mirror answers into their own store
+   * (e.g. a global userProfile in localStorage). Does NOT fire for
+   * `null`-valued automated submissions (buttons, breathers).
+   */
+  onAnswer?: (slideSlug: string, answerValue: string | string[]) => void;
 };
 
 type SlideSlug = string;
