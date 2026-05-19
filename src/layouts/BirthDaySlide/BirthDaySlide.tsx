@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from '../../components/Button/Button';
 import { SlideType_BirthDay } from '../../types';
 import { useHandleAnswer } from '../../hooks/useHandleAnswer';
+import { useUpdateSliderAnswers } from '../../hooks/useUpdateSliderAnswers';
 import { useNudge } from '../../hooks/useNudge';
 import { useSliderContext } from '../../core/useSliderContext';
 
@@ -20,6 +21,7 @@ function daysInMonth(month: number, year?: number): number {
 export function BirthDaySlide({ slideContents }: BirthDaySlideProps) {
   const { sliderAnswers, sliderSettings } = useSliderContext();
   const handleAnswer = useHandleAnswer();
+  const updateSliderAnswers = useUpdateSliderAnswers();
 
   // Clicking the disabled Continue button shakes the day/month/year row — a
   // wordless hint that the date isn't complete yet.
@@ -29,7 +31,8 @@ export function BirthDaySlide({ slideContents }: BirthDaySlideProps) {
   const [month, setMonth] = useState('');
   const [year, setYear] = useState('');
 
-  // Restore a previously entered date (stored as an ISO `YYYY-MM-DD` string).
+  // Restore a previously entered date (stored as an ISO `YYYY-MM-DD` string —
+  // partials like `1990--` are valid and re-parse correctly).
   useEffect(() => {
     const stored = sliderAnswers[slideContents.slug];
     if (typeof stored === 'string' && stored.includes('-')) {
@@ -39,6 +42,20 @@ export function BirthDaySlide({ slideContents }: BirthDaySlideProps) {
       setDay(d ? String(parseInt(d, 10)) : '');
     }
   }, [sliderAnswers, slideContents.slug]);
+
+  // Persist on every change so a partial date (e.g. user picked the year
+  // but not the month/day yet) survives back-navigation — `handleAnswer`
+  // only writes on submit. Same pattern as EmailSlide / TextInputSlide.
+  // Depends only on the date parts; `updateSliderAnswers` is a fresh
+  // closure each render and must not be a dependency.
+  useEffect(() => {
+    if (!day && !month && !year) return; // nothing entered yet
+    const partial = `${year || ''}-${
+      month ? String(month).padStart(2, '0') : ''
+    }-${day ? String(day).padStart(2, '0') : ''}`;
+    updateSliderAnswers(slideContents.slug, partial);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [day, month, year]);
 
   const minAge = slideContents.minAge ?? 13;
   const minYear = slideContents.minYear ?? 1920;
