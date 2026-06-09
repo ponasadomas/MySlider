@@ -265,7 +265,17 @@ export function SingleChoiceSlide({ slideContents }: SingleChoiceSlideProps) {
                   __html: slideContents.subtext.text
                 }}></p>
             )}
-            <h2 dangerouslySetInnerHTML={{ __html: slideContents.question }}></h2>
+            {(() => {
+              const fromRaw = slideContents.questionFromAnswer
+                ? sliderAnswers[slideContents.questionFromAnswer]
+                : undefined;
+              const fromAnswer = typeof fromRaw === 'string' ? fromRaw.trim() : '';
+              return fromAnswer ? (
+                <h2>{fromAnswer}</h2>
+              ) : (
+                <h2 dangerouslySetInnerHTML={{ __html: slideContents.question }}></h2>
+              );
+            })()}
             {slideContents.subtext?.position === 'bottom' && (
               <p
                 className="slider__subtext-bottom"

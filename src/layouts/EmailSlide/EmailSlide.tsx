@@ -72,42 +72,9 @@ export function EmailSlide({ slideContents }: EmailSlideProps) {
 
   const handleSubmit = () => {
     if (!canSubmit) return;
-
-    const userData = localStorage.getItem(sliderSettings.userStorageKey);
-    const userDataParsed = userData ? JSON.parse(userData) : {};
-    const utmData = userDataParsed.utm_data || {}; // Extracting only utm_data
-
-    localStorage.setItem(
-      sliderSettings.userStorageKey,
-      JSON.stringify({ ...userDataParsed, email: userEmail })
-    );
-
-    if (slideContents.emailMarketingService?.apiEndpoint) {
-      fetch(slideContents.emailMarketingService.apiEndpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          listId: slideContents.emailMarketingService.listId,
-          email: userEmail,
-          utm_data: utmData
-        })
-      })
-        .then((response) => response.json())
-        .then((data) => {
-          if (data.status === 'success') {
-            console.log('Email success.');
-          } else {
-            console.error('Email failure.');
-          }
-        })
-        .catch((error) => {
-          // Handle network errors here.
-          console.error('Network error:', error);
-        });
-    }
-
+    // Just report the answer. Persisting the email (and any email-marketing
+    // sync) is the consuming funnel's job — it hooks `handleAnswer` through
+    // the `onAnswer` callback in slider settings. MySlider owns no storage.
     handleAnswer(slideContents.slug, userEmail);
   };
 

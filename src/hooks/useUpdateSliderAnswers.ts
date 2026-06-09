@@ -21,9 +21,12 @@ export const useUpdateSliderAnswers = () => {
     // freshly-mounted slide persisting its blank initial state. Writing it
     // would register the slug as answered, which (with skipping disabled)
     // lets the URL gate wave the user past a question they never answered.
+    // `'null'` is the sentinel non-question slides (copyBlock, recap, score, …)
+    // pass just to advance — never a real answer, so don't persist it (it would
+    // otherwise pollute saved answers and pre-fill a later input reusing the slug).
     const hasAnswer = Array.isArray(answerValue)
       ? answerValue.length > 0
-      : !!answerValue;
+      : !!answerValue && answerValue !== 'null';
 
     if (hasAnswer) {
       updatedSliderAnswers = {

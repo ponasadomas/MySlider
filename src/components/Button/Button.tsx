@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useSliderContext } from '../../core/useSliderContext';
 import { useSound } from '../../hooks/useSound';
+import { getCurrentSlideSlugFromUrl } from '../../utils/getCurrentSlideSlugFromUrl';
+import { getSlideIndex } from '../../utils/getSlideIndex';
 import classNames from 'classnames';
 
 interface ButtonProps {
@@ -47,7 +49,7 @@ export function Button({
   addContainer = false,
   ...rest
 }: ButtonProps) {
-  const { sliderSettings } = useSliderContext();
+  const { sliderSettings, sliderFlow } = useSliderContext();
 
   // Initializes the hook if there's a file to play
   const [playForwardSound] = useSound({
@@ -66,6 +68,20 @@ export function Button({
   const [isButtonClicked, setIsButtonClicked] = useState(false);
 
   const backHandleClick = () => {
+    // On the first slide, hand control to the embedding app if it provided an
+    // `onExit` (e.g. close an SPA overlay) instead of leaving the page via
+    // history.back(). On later slides, Back steps to the previous slide.
+    const onExit = sliderSettings.navigation.onExit;
+    if (onExit) {
+      const currentSlug = getCurrentSlideSlugFromUrl(
+        sliderSettings.navigation.type,
+        sliderSettings.startPath
+      );
+      if (getSlideIndex(currentSlug, sliderFlow) <= 0) {
+        onExit();
+        return;
+      }
+    }
     window.history.back();
   };
 

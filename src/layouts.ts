@@ -25,4 +25,8 @@ export { TrialPriceSlide } from './layouts/TrialPriceSlide/TrialPriceSlide';
 export { ReviewsFacebookSlide } from './layouts/ReviewsFacebook/ReviewsFacebook';
 export { CtaSlide } from './layouts/CtaSlide/CtaSlide';
 export { AudioPlayer } from './layouts/AudioPlayer/AudioPlayer';
+export { VideoSlide } from './layouts/VideoSlide/VideoSlide';
+export { QuizSlide } from './layouts/QuizSlide/QuizSlide';
+export { RecapSlide } from './layouts/RecapSlide/RecapSlide';
+export { ScoreSlide } from './layouts/ScoreSlide/ScoreSlide';
 export { BirthDaySlide } from './layouts/BirthDaySlide/BirthDaySlide';

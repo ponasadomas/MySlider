@@ -2,6 +2,10 @@ export { SliderProvider } from './core/SliderProvider';
 export { Slider } from './core/Slider';
 export { useSliderContext } from './core/useSliderContext';
 
+// Advances the slider (records the answer + navigates). Exported so a consuming
+// project can build custom slide layouts that drive navigation themselves.
+export { useHandleAnswer } from './hooks/useHandleAnswer';
+
 // Loading-screen behaviour, so a consuming project can build its own
 // richly-decorated `loadingSlide` component on top of it.
 export { useLoadingSequence } from './hooks/useLoadingSequence';

@@ -10,6 +10,7 @@ interface CheckboxProps {
     value: string;
     isChecked: boolean;
     noneOption?: boolean;
+    description?: string;
     image?: {
       svg: string;
       alt?: string;
@@ -140,6 +141,12 @@ export function Checkbox({ answerData, handleCheckboxChange }: CheckboxProps) {
               : answerData.text}
           </span>
         </div>
+
+        {answerData.description && (
+          <span className="slider__checkbox-description">
+            {answerData.description}
+          </span>
+        )}
       </label>
     </>
   );

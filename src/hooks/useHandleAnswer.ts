@@ -25,7 +25,8 @@ export const useHandleAnswer = () => {
     setNextSlideSlug,
     sliderData,
     sliderLogic,
-    setCurrentSlideCategory
+    setCurrentSlideCategory,
+    setTotalSlidesNumber
   } = useSliderContext();
 
   const updateSliderAnswers = useUpdateSliderAnswers();
@@ -110,12 +111,15 @@ export const useHandleAnswer = () => {
       // console.log('After filter: ', updatedSliderFlow);
     }
 
-    // 5. We finally update sliderlow and set it to sessionStorage
+    // 5. We finally update sliderFlow and set it to sessionStorage. We also keep
+    //    the total-slide count in sync with the (possibly branched) flow length,
+    //    so the header count and progress bar reflect the path the user is on.
     sessionStorage.setItem(
       `${sliderSettings.sliderName}_sliderFlow`,
       JSON.stringify(updatedSliderFlow)
     );
     setSliderFlow(updatedSliderFlow);
+    setTotalSlidesNumber(updatedSliderFlow.length);
   };
 
   return handleAnswerClosure;

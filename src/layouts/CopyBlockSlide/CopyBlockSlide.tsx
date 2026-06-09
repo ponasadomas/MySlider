@@ -18,6 +18,13 @@ export function CopyBlockSlide({ slideContents }: CopyBlockProps) {
   const handleAnswer = useHandleAnswer();
 
   const handleButtonClick = () => {
+    // A dead-end branch slide (e.g. "come back when you've done the experiment")
+    // exits the funnel without completing it — so the host doesn't mark the
+    // lesson done. Everything else advances normally.
+    if (slideContents.exitOnButton) {
+      sliderSettings.navigation.onExit?.();
+      return;
+    }
     handleAnswer(slideContents.slug, 'null');
   };
 

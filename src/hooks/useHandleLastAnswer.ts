@@ -15,6 +15,16 @@ export const useHandleLastAnswer = () => {
   const handleLastAnswerClosure: HandleLastAnswerType = async (
     updatedSliderAnswers
   ) => {
+    // SPA-embedded funnels finish in place: hand control straight back to the
+    // host (e.g. close an overlay) with no transition screen, no data submit
+    // and crucially no `window.location` navigation — so the page never
+    // reloads. This makes the final-slide button behave like every other
+    // forward step (which never reloaded), only ending the funnel.
+    if (sliderSettings.navigation.onComplete) {
+      sliderSettings.navigation.onComplete();
+      return;
+    }
+
     setSliderTransition((prev) => ({
       ...prev,
       transitionExpanded: true,
@@ -38,8 +48,9 @@ export const useHandleLastAnswer = () => {
 
     setTimeout(() => {
       if (result !== false && result.status === 'success') {
-        let redirectUrlOnSuccess = sliderSettings.navigation.createRedirectUrlAfterDataSubmit(result);
-        window.location.href = redirectUrlOnSuccess;
+        const redirectUrlOnSuccess =
+          sliderSettings.navigation.createRedirectUrlAfterDataSubmit?.(result);
+        if (redirectUrlOnSuccess) window.location.href = redirectUrlOnSuccess;
       }
     }, 777);
 

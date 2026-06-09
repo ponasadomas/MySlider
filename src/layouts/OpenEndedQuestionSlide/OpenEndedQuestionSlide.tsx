@@ -18,15 +18,25 @@ export function OpenEndedQuestionSlide({
     return null;
   }
 
-  const [userAnswer, setUserAnswer] = useState('');
-  const [answerError, setAnswerError] = useState(false);
-
   const { sliderAnswers, sliderSettings } = useSliderContext();
   const handleAnswer = useHandleAnswer();
 
-  useEffect(() => {
+  // The saved answer for this slide, ignoring the legacy `'null'` sentinel.
+  const savedAnswer = (): string => {
     const previousAnswer = sliderAnswers[slideContents.slug] as string;
-    setUserAnswer(previousAnswer || '');
+    return previousAnswer && previousAnswer !== 'null' ? previousAnswer : '';
+  };
+
+  // Seed from the saved answer on the FIRST render (lazy init) so a pre-filled
+  // textarea never flashes its placeholder before an effect fills it in.
+  const [userAnswer, setUserAnswer] = useState(savedAnswer);
+  const [answerError, setAnswerError] = useState(false);
+
+  // Re-sync if the saved answer changes (e.g. navigating back to this slide, or
+  // answers loading in after mount).
+  useEffect(() => {
+    setUserAnswer(savedAnswer());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sliderAnswers, slideContents.slug]);
 
   const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -59,6 +69,11 @@ export function OpenEndedQuestionSlide({
             }`}>
             {slideContents.required ? 'Required' : 'Optional'}
           </div>
+          {slideContents.kicker && (
+            <p className="slider__openEndedQuestionSlide-kicker">
+              {slideContents.kicker}
+            </p>
+          )}
           {slideContents.subtext?.position === 'top' && (
             <p
               className="slider__subtext-top"
@@ -66,7 +81,17 @@ export function OpenEndedQuestionSlide({
                 __html: slideContents.subtext.text
               }}></p>
           )}
-          <h2 dangerouslySetInnerHTML={{ __html: slideContents.question }}></h2>
+          {(() => {
+            const fromRaw = slideContents.questionFromAnswer
+              ? sliderAnswers[slideContents.questionFromAnswer]
+              : undefined;
+            const fromAnswer = typeof fromRaw === 'string' ? fromRaw.trim() : '';
+            return fromAnswer ? (
+              <h2>{fromAnswer}</h2>
+            ) : (
+              <h2 dangerouslySetInnerHTML={{ __html: slideContents.question }}></h2>
+            );
+          })()}
           {slideContents.subtext?.position === 'bottom' && (
             <p
               className="slider__subtext-bottom"
@@ -106,7 +131,7 @@ export function OpenEndedQuestionSlide({
                 : false
             }
             onClick={(event) => handleButtonClick(event)}>
-            Continue
+            {slideContents.buttonText ?? 'Continue'}
           </Button>
         </aside>
       </div>

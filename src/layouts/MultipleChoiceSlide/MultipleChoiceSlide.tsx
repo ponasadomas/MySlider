@@ -103,9 +103,29 @@ export function MultipleChoiceSlide({
     }
   };
 
-  const [checkedAnswers, setCheckedAnswers] = useState<string[]>(
-    getInitialCheckedAnswers
-  );
+  // "Other" free-text option. The Other checkbox stores a marker value; the
+  // text the user types replaces that marker in the persisted/submitted answers.
+  const OTHER_VALUE = `${slideContents.slug}-other`;
+  const predefinedValues = new Set<string>([
+    ...slideContents.answers.map((a) => a.value),
+    `${slideContents.slug}-none`,
+  ]);
+
+  // On (re)entry, any stored value that isn't a predefined option is the Other
+  // text — map it back to the marker and seed the text box.
+  const initial = (() => {
+    const raw = getInitialCheckedAnswers();
+    const otherVal = slideContents.other
+      ? raw.find((v) => !predefinedValues.has(v))
+      : undefined;
+    return {
+      checked: raw.map((v) => (otherVal && v === otherVal ? OTHER_VALUE : v)),
+      otherText: otherVal ?? ''
+    };
+  })();
+
+  const [checkedAnswers, setCheckedAnswers] = useState<string[]>(initial.checked);
+  const [otherText, setOtherText] = useState<string>(initial.otherText);
   const [disableButton, setDisableButton] = useState(true);
   const handleAnswer = useHandleAnswer();
   const updateSliderAnswers = useUpdateSliderAnswers();
@@ -114,11 +134,17 @@ export function MultipleChoiceSlide({
   // shaking every checkbox would be too busy, so the group is cued as one.
   const { nudged, nudge } = useNudge();
 
-  // Persist checkbox state on every change so navigating away (e.g. clicking
-  // Back) doesn't lose the user's partial selection.
+  // The Other marker is swapped for the typed text; empty entries drop out.
+  const effectiveAnswers = checkedAnswers
+    .map((v) => (v === OTHER_VALUE ? otherText.trim() : v))
+    .filter((v) => v.length > 0);
+
+  // Persist on every change so navigating away (e.g. clicking Back) doesn't lose
+  // the user's partial selection.
   useEffect(() => {
-    updateSliderAnswers(slideContents.slug, checkedAnswers);
-  }, [checkedAnswers]);
+    updateSliderAnswers(slideContents.slug, effectiveAnswers);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checkedAnswers, otherText]);
 
   // Function to fire whenever a checkbox is checked or unchecked
   const handleCheckboxChange = (
@@ -146,10 +172,12 @@ export function MultipleChoiceSlide({
     setCheckedAnswers(newCheckedAnswers);
   };
 
-  // Enable or disable button based on checkedAnswers
+  // Enable the button when there's at least one effective answer (an Other
+  // option with an empty text box doesn't count).
   useEffect(() => {
-    setDisableButton(checkedAnswers.length === 0);
-  }, [checkedAnswers]);
+    setDisableButton(effectiveAnswers.length === 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checkedAnswers, otherText]);
 
   const renderCheckboxes = slideContents.answers.map((item, index) => {
     const isAnswerChecked = checkedAnswers.includes(item.value);
@@ -159,6 +187,7 @@ export function MultipleChoiceSlide({
       slideSlug: slideContents.slug,
       text: item.text,
       value: item.value,
+      description: item.description,
       isChecked: isAnswerChecked
     };
 
@@ -196,6 +225,40 @@ export function MultipleChoiceSlide({
         </li>
       );
     }
+  };
+
+  const renderOther = () => {
+    if (!slideContents.other) return null;
+    const isChecked = checkedAnswers.includes(OTHER_VALUE);
+
+    return (
+      <li
+        key={OTHER_VALUE}
+        className={`slider__checkbox slider__checkbox-other${
+          isChecked ? ' is-open' : ''
+        }`}>
+        <Checkbox
+          answerData={{
+            id: OTHER_VALUE,
+            slideSlug: slideContents.slug,
+            value: OTHER_VALUE,
+            isChecked,
+            text: slideContents.other.text ?? 'Other'
+          }}
+          handleCheckboxChange={handleCheckboxChange}
+        />
+        {isChecked && (
+          <input
+            type="text"
+            className="slider__checkbox-otherInput"
+            placeholder={slideContents.other.placeholder ?? 'Type your own…'}
+            value={otherText}
+            onChange={(e) => setOtherText(e.target.value)}
+            autoFocus
+          />
+        )}
+      </li>
+    );
   };
 
   const renderImage = () => {
@@ -260,6 +323,7 @@ export function MultipleChoiceSlide({
                 nudged ? ' is-nudged' : ''
               }`}>
               {renderCheckboxes}
+              {renderOther()}
               {renderNoneOption()}
             </ul>
             <Button
@@ -270,7 +334,7 @@ export function MultipleChoiceSlide({
               onDisabledClick={nudge}
               animate={sliderSettings.buttonAnimation}
               addContainer
-              onClick={() => handleAnswer(slideContents.slug, checkedAnswers)}>
+              onClick={() => handleAnswer(slideContents.slug, effectiveAnswers)}>
               {slideContents.buttonText ?? 'Continue'}
             </Button>
           </div>

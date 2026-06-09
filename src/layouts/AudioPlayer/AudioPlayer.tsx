@@ -1,134 +1,147 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SlideType_AudioPlayer } from '../../types';
+import { Button } from '../../components/Button/Button';
 import { useHandleAnswer } from '../../hooks/useHandleAnswer';
+import { useSliderContext } from '../../core/useSliderContext';
 
 interface AudioPlayerProps {
   slideContents: SlideType_AudioPlayer;
 }
 
+function fmtTime(t: number) {
+  if (!isFinite(t) || t < 0) t = 0;
+  const m = Math.floor(t / 60);
+  const s = Math.floor(t % 60);
+  return m + ':' + String(s).padStart(2, '0');
+}
+
+const PlayIcon = (
+  <svg viewBox="0 0 32 32" fill="currentColor" aria-hidden="true">
+    <path d="m23.5 14.865-13.581-8.487a1.338 1.338 0 0 0 -2.047 1.134v16.975a1.335 1.335 0 0 0 2.047 1.135l13.581-8.487a1.339 1.339 0 0 0 0-2.27z" />
+  </svg>
+);
+const PauseIcon = (
+  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <rect x="6.5" y="5" width="4" height="14" rx="1.6" />
+    <rect x="13.5" y="5" width="4" height="14" rx="1.6" />
+  </svg>
+);
+
+/**
+ * Inline audio player slide: heading + a play/pause control, a seekable
+ * progress bar with time, and a button to advance. No visual CSS ships from the
+ * library — the consumer styles `.slider__audioPlayer*`.
+ */
 export function AudioPlayer({ slideContents }: AudioPlayerProps) {
+  const { sliderSettings } = useSliderContext();
   const handleAnswer = useHandleAnswer();
+
   const audioRef = useRef<HTMLAudioElement>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const [current, setCurrent] = useState(0);
   const [duration, setDuration] = useState(0);
 
-  const handleButtonClick = () => {
-    handleAnswer(slideContents.slug, 'null');
+  const toggle = () => {
+    const a = audioRef.current;
+    if (!a) return;
+    if (a.paused) a.play().catch(() => {});
+    else a.pause();
   };
 
-  const togglePlayPause = () => {
-    if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.pause();
-      } else {
-        audioRef.current.play();
-      }
-      setIsPlaying(!isPlaying);
-    }
+  const seekAt = (clientX: number) => {
+    const el = trackRef.current;
+    const a = audioRef.current;
+    if (!el || !a || !duration) return;
+    const r = el.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (clientX - r.left) / r.width));
+    a.currentTime = ratio * duration;
+    setCurrent(a.currentTime);
   };
 
   useEffect(() => {
-    const audioElement = audioRef.current;
-
-    const updateCurrentTime = () => {
-      if (audioElement) {
-        setCurrentTime(audioElement.currentTime);
-      }
-    };
-
-    const setAudioDuration = () => {
-      if (audioElement) {
-        setDuration(audioElement.duration);
-      }
-    };
-
-    if (audioElement) {
-      audioElement.addEventListener('timeupdate', updateCurrentTime);
-      audioElement.addEventListener('loadedmetadata', setAudioDuration);
-    }
-
+    const a = audioRef.current;
+    if (!a) return;
+    const onTime = () => setCurrent(a.currentTime);
+    const onMeta = () => setDuration(a.duration || 0);
+    const onPlay = () => setPlaying(true);
+    const onPause = () => setPlaying(false);
+    a.addEventListener('timeupdate', onTime);
+    a.addEventListener('loadedmetadata', onMeta);
+    a.addEventListener('play', onPlay);
+    a.addEventListener('pause', onPause);
+    a.addEventListener('ended', onPause);
     return () => {
-      if (audioElement) {
-        audioElement.removeEventListener('timeupdate', updateCurrentTime);
-        audioElement.removeEventListener('loadedmetadata', setAudioDuration);
-      }
+      a.removeEventListener('timeupdate', onTime);
+      a.removeEventListener('loadedmetadata', onMeta);
+      a.removeEventListener('play', onPlay);
+      a.removeEventListener('pause', onPause);
+      a.removeEventListener('ended', onPause);
     };
   }, []);
 
-  const formatTime = (time: number) => {
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60);
-    const paddedSeconds = seconds < 10 ? `0${seconds}` : seconds;
-    return `${minutes}:${paddedSeconds}`;
-  };
-
-  const getProgressStyle = () => {
-    if (duration === 0) return {}; // Avoid division by zero
-
-    const progress = (currentTime / duration) * 100;
-    const angle = Math.abs((progress / 100) * 360);
-
-    // Get CSS variables
-    const root = document.documentElement;
-    const progressColor = getComputedStyle(root).getPropertyValue(
-      '--player-progress-color'
-    );
-    const backgroundColor = getComputedStyle(root).getPropertyValue(
-      '--player-background-color'
-    );
-
-    if (angle <= 180) {
-      return {
-        backgroundImage: `linear-gradient(90deg, ${backgroundColor} 50%, transparent 50%), linear-gradient(${
-          90 + angle
-        }deg, ${progressColor} 50%, ${backgroundColor} 50%)`
-      };
-    } else {
-      return {
-        backgroundImage: `linear-gradient(90deg, transparent 50%, ${progressColor} 50%), linear-gradient(${
-          angle - 90
-        }deg, ${backgroundColor} 50%, ${progressColor} 50%)`
-      };
-    }
-  };
+  const pct = duration ? (current / duration) * 100 : 0;
 
   return (
-    <div className="slider__audioPlayer">
+    <div className={`slider__audioPlayer${playing ? ' is-playing' : ''}`}>
       <div className="slider__slide-content">
         <section className="slider__section">
-          <div
-            className={`slider__audioPlayer-progress ${
-              isPlaying && 'slider__audioPlayer-skew'
-            }`}
-            style={getProgressStyle()}>
-            <audio ref={audioRef} src={slideContents.audioFile} />
+          {slideContents.eyebrow && (
+            <p className="slider__audioPlayer-eyebrow">{slideContents.eyebrow}</p>
+          )}
+          {slideContents.headline && (
+            <h2 dangerouslySetInnerHTML={{ __html: slideContents.headline }}></h2>
+          )}
+          {slideContents.subtext && (
+            <p
+              className="slider__audioPlayer-sub"
+              dangerouslySetInnerHTML={{ __html: slideContents.subtext }}></p>
+          )}
+
+          <div className="slider__audioPlayer-player">
+            <audio ref={audioRef} src={slideContents.audioFile} preload="metadata" />
+
+            <button
+              type="button"
+              className="slider__audioPlayer-toggle"
+              onClick={toggle}
+              aria-label={playing ? 'Pause' : 'Play'}>
+              {playing ? PauseIcon : PlayIcon}
+            </button>
+
             <div
-              onClick={togglePlayPause}
-              className="slider__audioPlayer-button">
-              {isPlaying ? (
-                <svg
-                  viewBox="0 0 45.975 45.975"
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="slider__pause">
-                  <g>
-                    <g>
-                      <path d="M13.987,0c-2.762,0-5,2.239-5,5v35.975c0,2.763,2.238,5,5,5s5-2.238,5-5V5C18.987,2.238,16.75,0,13.987,0z" />
-                      <path d="M31.987,0c-2.762,0-5,2.239-5,5v35.975c0,2.762,2.238,5,5,5s5-2.238,5-5V5C36.987,2.239,34.749,0,31.987,0z" />
-                    </g>
-                  </g>
-                </svg>
-              ) : (
-                <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-                  <path d="m23.5 14.865-13.581-8.487a1.338 1.338 0 0 0 -2.047 1.134v16.975a1.335 1.335 0 0 0 2.047 1.135l13.581-8.487a1.339 1.339 0 0 0 0-2.27z" />
-                </svg>
-              )}
+              className="slider__audioPlayer-bar"
+              ref={trackRef}
+              onPointerDown={(e) => {
+                try {
+                  e.currentTarget.setPointerCapture(e.pointerId);
+                } catch (_) {}
+                seekAt(e.clientX);
+              }}
+              onPointerMove={(e) => {
+                if (e.buttons) seekAt(e.clientX);
+              }}>
+              <div className="slider__audioPlayer-fill" style={{ width: pct + '%' }} />
+              <div className="slider__audioPlayer-thumb" style={{ left: pct + '%' }} />
+            </div>
+
+            <div className="slider__audioPlayer-time">
+              {fmtTime(current)} <span>/ {fmtTime(duration)}</span>
             </div>
           </div>
-          <div className="slider__audioPlayer-time">
-            {formatTime(currentTime)}
-          </div>
         </section>
+      </div>
+
+      <div className="slider__audioPlayer-footer">
+        <Button
+          primary
+          flat
+          navigation="forward"
+          animate={sliderSettings.buttonAnimation}
+          addContainer
+          onClick={() => handleAnswer(slideContents.slug, 'listened')}>
+          {slideContents.buttonText ?? 'Continue'}
+        </Button>
       </div>
     </div>
   );

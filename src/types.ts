@@ -71,6 +71,10 @@ export type SlideType_SingleChoice = SlideType_Defaults & {
   layout: 'vertical' | 'horizontal';
   kicker?: string;
   question: string;
+  /** When set, the question shows the answer the user stored on an earlier
+   *  slide (looked up by slug from sliderAnswers), falling back to `question`
+   *  if that answer is empty. Rendered as plain text (it's user input). */
+  questionFromAnswer?: string;
   subtext?: SlideType_Subtext;
   answers: {
     text: string;
@@ -107,8 +111,11 @@ export type SlideType_MultipleChoice = SlideType_Defaults & {
   kicker?: string;
   question: string;
   subtext?: SlideType_Subtext;
-  answers: { text: string; value: string }[];
+  answers: { text: string; value: string; description?: string }[];
   noneOption?: { text: { desktop: string; mobile: string } };
+  /** Adds an "Other" checkbox that reveals a free-text input; what the user
+   *  types is stored as that selection's value (so it flows into recaps etc). */
+  other?: { text?: string; placeholder?: string };
   buttonText?: string;
   image?: SlideType_ResponsiveImage | SlideType_SvgImage;
 };
@@ -142,9 +149,55 @@ export type SlideType_SingleChoiceRanker = SlideType_Defaults & {
 export type SlideType_OpenEndedQuestion = SlideType_Defaults & {
   type: 'openEndedQuestion';
   required?: boolean;
+  kicker?: string;
   question: string;
+  /** When set, the question shows the answer the user stored on an earlier slide
+   *  (looked up by slug), falling back to `question` if empty. Powers the
+   *  "downward-arrow" technique where each prompt echoes the previous answer. */
+  questionFromAnswer?: string;
   subtext?: SlideType_Subtext;
   placeholder: string;
+  buttonText?: string;
+};
+
+// Single-choice quiz with right/wrong feedback. Picking an answer reveals a
+// result panel (correct / "in fact…" heading + explanation), then a button
+// advances. `correct` marks the right answer(s).
+export type SlideType_Quiz = SlideType_Defaults & {
+  type: 'quiz';
+  prompt?: string;
+  question: string;
+  answers: { text: string; correct?: boolean }[];
+  explanation: string;
+  correctHeading?: string;
+  wrongHeading?: string;
+  buttonText?: string;
+  image?: SlideType_ResponsiveImage | SlideType_SvgImage;
+};
+
+// Echoes back previously-entered answers, grouped by label — a "here's what we
+// heard" review. Each item pulls the answer stored under `sourceSlug`.
+export type SlideType_Recap = SlideType_Defaults & {
+  type: 'recap';
+  headline: string;
+  /** Each item shows the answer at `sourceSlug`. When `suffixSlug` is set, that
+   *  answer is appended in parentheses — e.g. "tightness, aches (Unpleasant)". */
+  items: { label: string; sourceSlug: string; suffixSlug?: string }[];
+  emptyText?: string;
+  buttonText?: string;
+};
+
+// Sums the numeric answers stored under `sourceSlugs` and shows the total (e.g.
+// a GAD-7 assessment score), with an optional severity band for the result.
+export type SlideType_Score = SlideType_Defaults & {
+  type: 'score';
+  sourceSlugs: string[];
+  /** Shown under the number. `{score}` is replaced with the total. */
+  headline: string;
+  subtext?: string;
+  /** Optional label for the score, first band whose `upTo` >= score wins. */
+  bands?: { upTo: number; label: string }[];
+  buttonText?: string;
 };
 
 export type SlideType_TextInput = SlideType_Defaults & {
@@ -171,6 +224,9 @@ export type SlideType_CopyBlock = SlideType_Defaults & {
   copyImages?: (SlideType_InlineResponsiveImage | SlideType_FlatResponsiveImage | SlideType_InlineSvgImage)[];
   buttonText?: string;
   image?: SlideType_ResponsiveImage | SlideType_SvgImage;
+  /** When true, the button exits the funnel (onExit) instead of advancing —
+   *  for a dead-end branch slide that should NOT mark the lesson complete. */
+  exitOnButton?: boolean;
 };
 
 export type SlideType_Report = SlideType_Defaults & {
@@ -204,10 +260,6 @@ export type SlideType_Email = SlideType_Defaults & {
    *  This is a UI gate only — the consent value is not stored or submitted. */
   consent?: { text: string };
   policyText?: { text: string; position: 'top' | 'bottom' };
-  emailMarketingService: {
-    listId: number | string;
-    apiEndpoint: string;
-  };
   buttonText?: string;
 };
 
@@ -307,7 +359,37 @@ export type SlideType_TrialPrice = SlideType_Defaults & {
 
 export type SlideType_AudioPlayer = SlideType_Defaults & {
   type: 'audioPlayer';
+  /** Audio source URL (consumer-provided; the library never imports it). */
   audioFile: string;
+  /** Small uppercase label above the heading (e.g. "Quickie"). */
+  eyebrow?: string;
+  /** Heading shown above the player. */
+  headline?: string;
+  /** Optional supporting line under the heading. */
+  subtext?: string;
+  /** Label of the advance button (defaults to "Continue"). */
+  buttonText?: string;
+};
+
+export type SlideType_Video = SlideType_Defaults & {
+  type: 'video';
+  /** Video source URL (consumer-provided; the library never imports it). */
+  videoSrc: string;
+  /** Optional poster frame shown before playback. */
+  poster?: string;
+  /** Small uppercase label in the player's top bar (e.g. "Week 1 · Day 2"). */
+  eyebrow?: string;
+  /** Optional caption lines, shown sequentially across the video's runtime.
+   *  Omit for videos without narration. */
+  transcript?: string[];
+  /** Heading + body shown on the completion overlay. */
+  completeTitle?: string;
+  completeBody?: string;
+  /** Label of the completion overlay's primary button (defaults to "Continue"). */
+  buttonText?: string;
+  autoPlay?: boolean;
+  loop?: boolean;
+  muted?: boolean;
 };
 
 export type SlideType_BirthDay = SlideType_Defaults & {
@@ -364,6 +446,10 @@ export type SlideTypes =
   | SlideType_CtaSlide
   | SlideType_TrialPrice
   | SlideType_AudioPlayer
+  | SlideType_Video
+  | SlideType_Quiz
+  | SlideType_Recap
+  | SlideType_Score
   | SlideType_BirthDay;
 
 export type SliderDataTypes = SlideTypes[];
@@ -381,7 +467,13 @@ export type RequiredSlideSlugsType = string[];
 export type SliderSettingsType = {
   sliderName: string;
   startPath: string;
-  userStorageKey: string;
+  /**
+   * When `false`, the funnel always starts on the first slide and ignores any
+   * saved sessionStorage progress (and the URL slug). Use this for embedded /
+   * replayable funnels such as in-app lessons. Defaults to `true` — resume
+   * where the user left off.
+   */
+  persistProgress?: boolean;
   buttonAnimation?: boolean;
   soundOn: boolean;
   sounds?: {
@@ -421,11 +513,29 @@ export type SliderSettingsType = {
       | 'cosmicBlur'
       | 'veilSweep'
       | 'starDissolve'
-      | 'subtleScale';
+      | 'subtleScale'
+      | 'softRise';
     type: '#' | '/';
     clickDelay: number;
     progressBar?: { position: 'top' | 'bottom' };
-    createRedirectUrlAfterDataSubmit: (result: any) => string;
+    createRedirectUrlAfterDataSubmit?: (result: any) => string;
+    /**
+     * Called when the user presses Back while on the first slide. Lets an
+     * embedding app (e.g. an SPA overlay) close the funnel instead of MySlider
+     * falling back to `window.history.back()` and navigating away from the
+     * page. Only consulted on the first slide; on later slides Back still steps
+     * to the previous slide.
+     */
+    onExit?: () => void;
+    /**
+     * Called when the final slide is completed, for SPA-embedded funnels that
+     * finish in place instead of posting to a backend and redirecting. When
+     * provided, MySlider hands control straight to this callback on completion —
+     * NO transition screen, NO data submit, NO `window.location` navigation (so
+     * the host page never reloads). Without it, completion falls back to the
+     * submit + `createRedirectUrlAfterDataSubmit` redirect flow.
+     */
+    onComplete?: () => void;
   };
   structure: {
     totalSlides: TotalSlidesType;

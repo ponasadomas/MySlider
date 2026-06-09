@@ -18,7 +18,8 @@ import {
   SlideTypes,
   SlideType_CopyBlock,
   SliderDataTypes,
-  SliderLayoutsMap
+  SliderLayoutsMap,
+  SliderAnswersType
 } from '../types';
 
 export function SliderProvider({
@@ -27,6 +28,8 @@ export function SliderProvider({
   sliderSettings,
   sliderMetadata,
   layouts,
+  initialAnswers,
+  onAnswersChange,
   children
 }: {
   sliderData: SliderDataTypes;
@@ -34,6 +37,11 @@ export function SliderProvider({
   sliderSettings: SliderSettingsType;
   sliderMetadata: SliderMetadataType;
   layouts: SliderLayoutsMap;
+  // Seed answers from outside (e.g. a backend store) so the funnel opens with
+  // the user's prior input pre-filled and earlier lessons' answers available.
+  initialAnswers?: SliderAnswersType;
+  // Fires whenever answers change — the hook for persisting them to a backend.
+  onAnswersChange?: (answers: SliderAnswersType) => void;
   children: ReactNode;
 }) {
   // Initialize currentSlideSlug from the URL when possible, so deep-links and
@@ -41,9 +49,13 @@ export function SliderProvider({
   // the first slide and animating across.
   // Restored from v1 behavior: respect the URL if its slug is within the
   // initial slide flow.
+  // When progress isn't persisted, the funnel always starts on the first slide
+  // and ignores any saved sessionStorage / URL position.
+  const persistProgress = sliderSettings.persistProgress !== false;
+
   const [currentSlideSlug, setCurrentSlideSlug] =
     useState<CurrentSlideSlugType>(() => {
-      if (typeof window === 'undefined') {
+      if (typeof window === 'undefined' || !persistProgress) {
         return sliderLogic.initialSlides[0];
       }
       const urlSlug = getCurrentSlideSlugFromUrl(
@@ -60,6 +72,7 @@ export function SliderProvider({
   const [disableMouseEvents, setDisableMouseEvents] = useState<boolean>(false);
 
   const [sliderFlow, setSliderFlow] = useState<SliderFlowType>(() => {
+    if (!persistProgress) return sliderLogic.initialSlides;
     const storedSessionFlow = sessionStorage.getItem(
       `${sliderSettings.sliderName}_sliderFlow`
     );
@@ -69,10 +82,15 @@ export function SliderProvider({
   });
 
   const [sliderAnswers, setSliderAnswers] = useState(() => {
+    const seeded = initialAnswers ?? {};
+    if (!persistProgress) return { ...seeded };
     const storedHistory = sessionStorage.getItem(
       `${sliderSettings.sliderName}_sliderAnswers`
     );
-    return storedHistory ? JSON.parse(storedHistory) : {};
+    // session-persisted answers win over the seed (most recent on this device)
+    return storedHistory
+      ? { ...seeded, ...JSON.parse(storedHistory) }
+      : { ...seeded };
   });
 
   const [totalSlidesNumber, setTotalSlidesNumber] = useState<number>(
@@ -104,8 +122,8 @@ export function SliderProvider({
       duration: 0.777
     });
 
-  // Use custom hook to set and get slider tags
-  const sliderTags = useSliderTags(sliderSettings.userStorageKey);
+  // URL `slidertag_*` params — merged into sliderMetadata for the backend.
+  const sliderTags = useSliderTags();
 
   const mergedMetadata = useMemo(
     () => ({
@@ -194,6 +212,18 @@ export function SliderProvider({
 
   // Look-ahead: priority fast path for the next 2 slides in the current flow.
   usePreloadNextSlideImages(currentSlideSlug, sliderFlow, sliderData);
+
+  // Report answer changes outward (for backend persistence). Skip the initial
+  // render so seeding `initialAnswers` doesn't echo straight back as a "save".
+  const answersChangeFirst = useRef(true);
+  useEffect(() => {
+    if (answersChangeFirst.current) {
+      answersChangeFirst.current = false;
+      return;
+    }
+    onAnswersChange?.(sliderAnswers);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sliderAnswers]);
 
   return (
     <SliderContext.Provider value={contextValue}>
