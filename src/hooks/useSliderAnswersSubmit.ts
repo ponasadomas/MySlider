@@ -26,6 +26,9 @@ export const useSliderAnswersSubmit = () => {
     }
 
     const payload = {
+      // Identifies the quiz so the backend routes the submission to that quiz's
+      // own table (e.g. `quiz_stop_your_divorce`).
+      sliderName: sliderSettings.sliderName,
       sliderAnswers: updatedSliderAnswers,
       requiredSlideSlugs: sliderSettings.structure.requiredSlideSlugs,
       sliderMetadata: sliderMetadata,
