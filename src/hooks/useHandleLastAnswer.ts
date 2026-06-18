@@ -3,6 +3,7 @@ import { SliderAnswersType } from '../types';
 import { checkForRequiredAnswers } from '../utils/checkForRequiredAnswers';
 import { useSliderAnswersSubmit } from './useSliderAnswersSubmit';
 import { notyfError } from '../utils/notyfNotifications';
+import { rotateSubmissionUuid } from '../utils/userProfile';
 
 export type HandleLastAnswerType = (
   updatedSliderAnswers: SliderAnswersType
@@ -48,6 +49,9 @@ export const useHandleLastAnswer = () => {
 
     setTimeout(() => {
       if (result !== false && result.status === 'success') {
+        // Submission accepted — rotate the submissionId so a fresh run (same
+        // browser) is a new submission, not a dedup'd "retry" of this one.
+        rotateSubmissionUuid();
         const redirectUrlOnSuccess =
           sliderSettings.navigation.createRedirectUrlAfterDataSubmit?.(result);
         if (redirectUrlOnSuccess) window.location.href = redirectUrlOnSuccess;

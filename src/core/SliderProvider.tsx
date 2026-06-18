@@ -5,6 +5,7 @@ import { useSliderTags } from '../hooks/useSliderTags';
 import { usePreloadNextSlideImages } from '../hooks/usePreloadNextSlideImages';
 import { preloadImages } from '../utils/preloadImages';
 import { getCurrentSlideSlugFromUrl } from '../utils/getCurrentSlideSlugFromUrl';
+import { getOrMintUserUuid, getOrCreateSubmissionUuid } from '../utils/userProfile';
 
 import {
   SliderSettingsType,
@@ -125,8 +126,14 @@ export function SliderProvider({
   // URL `slidertag_*` params — merged into sliderMetadata for the backend.
   const sliderTags = useSliderTags();
 
+  // Identity from the shared `userProfile` localStorage contract: userUuid is
+  // normally minted at first touch by a landing-page script; submissionUuid is
+  // created here for this run (idempotency key + CAPI event_id). A consumer that
+  // passes its own values in `sliderMetadata` still wins (spread last).
   const mergedMetadata = useMemo(
     () => ({
+      userUuid: getOrMintUserUuid(),
+      submissionUuid: getOrCreateSubmissionUuid(),
       ...sliderMetadata,
       sliderTags: sliderTags
     }),

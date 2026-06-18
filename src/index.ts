@@ -10,6 +10,15 @@ export { useHandleAnswer } from './hooks/useHandleAnswer';
 // richly-decorated `loadingSlide` component on top of it.
 export { useLoadingSequence } from './hooks/useLoadingSequence';
 
+// Shared `userProfile` localStorage identity contract (userUuid + submissionId).
+// Exported so analytics / Meta CAPI code can read the same ids MySlider submits.
+export {
+  getOrMintUserUuid,
+  getOrCreateSubmissionUuid,
+  rotateSubmissionUuid,
+} from './utils/userProfile';
+export { uuidV4 } from './utils/uuid';
+
 export type {
   SliderDataTypes,
   SlideTypes,
