@@ -540,6 +540,12 @@ export type SliderSettingsType = {
   structure: {
     totalSlides: TotalSlidesType;
     requiredSlideSlugs: RequiredSlideSlugsType;
+    // Optional cap (0-100) for the progress bar on every NON-final slide. Lets a
+    // branching funnel use a smaller `totalSlides` (e.g. the typical/shortest path)
+    // so the bar moves at a satisfying pace, without ever showing 100% before the
+    // genuinely-final slide — paths longer than `totalSlides` hold here until the
+    // end, then snap to 100. Omit (or 100) for the classic behaviour.
+    progressClamp?: number;
   };
   backendSettings: {
     submitDataApi: string;

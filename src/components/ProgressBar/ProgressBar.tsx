@@ -50,9 +50,14 @@ export function ProgressBar({
   // percentage the most of it is just a fancy animation for numbers. We handle
   // animation of line with CSS but to display increase of progress number one
   // by one we need to use JS.
+  // Cap for non-final slides. With a small `totalSlides` (e.g. a branching
+  // funnel calibrated to its typical/shortest path) the raw ratio can hit 100%
+  // before the user is actually done; `progressClamp` holds it just under until
+  // the genuinely-final slide snaps it to 100. Defaults to 100 (classic).
+  const progressClamp = sliderSettings.structure?.progressClamp ?? 100;
   const progressTarget = isFinalSlide
     ? 100
-    : Math.min(100, (currentSlideIndex / totalSlides) * 100);
+    : Math.min(progressClamp, (currentSlideIndex / totalSlides) * 100);
   const [prevProgress, setPrevProgress] = useState(0);
   const [currentProgress, setCurrentProgress] = useState(0);
 
