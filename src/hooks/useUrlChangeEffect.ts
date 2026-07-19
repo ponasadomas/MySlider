@@ -141,12 +141,28 @@ export function useUrlChangeEffect() {
     }
   }
 
+  // bfcache guard. Going forward through a transient special slide (e.g. the
+  // last question -> breatherSlide -> results page on another route) lets the
+  // browser snapshot this page WHILE that loader is on screen. Clicking Back
+  // restores that frozen snapshot from the back/forward cache — the loader's
+  // timers don't resume, so it hangs and the user can never reach their
+  // answers. On a persisted `pageshow` (a bfcache restore) we force a fresh
+  // load so the slider re-resolves the URL to the real slide. Loaders stay
+  // forward-only. `persisted` is false on a normal first load, so this is a
+  // no-op except on actual bfcache restores.
+  const handlePageShow = (event: PageTransitionEvent) => {
+    if (event.persisted) {
+      window.location.reload();
+    }
+  };
+
   useEffect(() => {
     // The popstate event does not get fired on all changes to window.location (like hash changes invoked
     // programmatically via window.location.hash = '#/new-hash'), but it does get fired for actions like pressing
     // the back and forward buttons. This is why we use it here. Using react-router-dom would save us this hassle, but
     // would also increase the bundle size.
     window.addEventListener('popstate', handleUrlChange);
+    window.addEventListener('pageshow', handlePageShow);
 
     // We call the handleUrlChange function initially to ensure it runs on component mount
     // This is so we can fire our logic on programmatic navigation
@@ -154,7 +170,10 @@ export function useUrlChangeEffect() {
 
 
     // Cleanup function to remove the event listener
-    return () => window.removeEventListener('popstate', handleUrlChange);
+    return () => {
+      window.removeEventListener('popstate', handleUrlChange);
+      window.removeEventListener('pageshow', handlePageShow);
+    };
 
   }, [window.location.hash, window.location.pathname]);
 }
