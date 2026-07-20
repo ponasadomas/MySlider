@@ -13,28 +13,42 @@ function preloadFromSrcSet(srcSet: string, sizes: string): Promise<void> {
   });
 }
 
+function preloadFromSrc(src: string): Promise<void> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve();
+    img.onerror = () => resolve();
+    img.src = src;
+  });
+}
+
 function preloadOneImageObject(imageObj: any): Promise<void> {
   if (!imageObj) return Promise.resolve();
 
   if ('svg' in imageObj) {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => resolve();
-      img.onerror = () => resolve();
-      img.src = imageObj.svg;
-    });
+    return preloadFromSrc(imageObj.svg);
   }
 
-  // Nested responsive (SlideType_ResponsiveImage / SlideType_InlineResponsiveImage)
-  // Prefer webp to mirror the <picture> element which lists webp source first.
+  // Nested responsive (SlideType_ResponsiveImage / SlideType_InlineResponsiveImage).
+  // Mirror ResponsiveImageOutput EXACTLY: it emits <source srcset=webp>/<source
+  // srcset=png> only when those srcSets are non-empty, and always an
+  // <img src={png.images[0].path ?? png.src}> fallback. Single-URL images (no
+  // responsive-loader → empty srcSet) load via that <img> src, so preloading via
+  // an empty srcSet fetches nothing — fall back to the exact src the browser uses.
   if ('png' in imageObj || 'webp' in imageObj) {
-    const format = imageObj.webp ?? imageObj.png;
-    return preloadFromSrcSet(format.srcSet, imageObj.sizes ?? '');
+    const webp = imageObj.webp;
+    const png = imageObj.png;
+    if (webp?.srcSet) return preloadFromSrcSet(webp.srcSet, imageObj.sizes ?? '');
+    if (png?.srcSet) return preloadFromSrcSet(png.srcSet, imageObj.sizes ?? '');
+    const fallback = png?.images?.[0]?.path ?? png?.src ?? webp?.images?.[0]?.path ?? webp?.src;
+    return fallback ? preloadFromSrc(fallback) : Promise.resolve();
   }
 
-  // Flat responsive (SlideType_FlatResponsiveImage — webpack plugin direct output)
+  // Flat responsive (SlideType_FlatResponsiveImage — webpack plugin direct output).
   if ('srcSet' in imageObj) {
-    return preloadFromSrcSet(imageObj.srcSet, imageObj.sizes ?? '');
+    if (imageObj.srcSet) return preloadFromSrcSet(imageObj.srcSet, imageObj.sizes ?? '');
+    const fallback = imageObj.images?.[0]?.path ?? imageObj.src;
+    return fallback ? preloadFromSrc(fallback) : Promise.resolve();
   }
 
   return Promise.resolve();
