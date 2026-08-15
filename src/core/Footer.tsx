@@ -21,7 +21,7 @@ export function Footer() {
       }`}>
       <div className="slider__footer-content">
         <Button transparent animate navigation="back" addContainer>
-          Back
+          {sliderSettings.labels?.back ?? 'Back'}
         </Button>
         {sliderSettings.navigation.progressBar?.position !== 'top' && (
           <ProgressBar

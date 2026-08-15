@@ -92,7 +92,7 @@ export function Slider({
                 hideUIElements ? 'slider__UIElement-hide' : ''
               }`}>
               <Button navigation="back" addContainer>
-                Back
+                {sliderSettings.labels?.back ?? 'Back'}
               </Button>
 
               {sliderSettings.header.showLogo && (

@@ -481,6 +481,17 @@ export type SliderSettingsType = {
     radioButton?: { clickDown: string; clickUp: string };
     checkbox?: { checkStart: string; checkOn: string; checkOff: string };
   };
+  /**
+   * Wording for the chrome MySlider renders itself, so a consumer can
+   * translate it. Lives at the top level rather than under `header`/`footer`
+   * because the same Back control is rendered in both places — one label,
+   * both sites. Every entry is optional and falls back to its English
+   * default, so a funnel that says nothing keeps today's wording.
+   */
+  labels?: {
+    /** Back button, in the header and the footer. Defaults to `Back`. */
+    back?: React.ReactNode;
+  };
   header: {
     showLogo: false | { svg: string; alt: string };
     showQuestionCategory: boolean;
