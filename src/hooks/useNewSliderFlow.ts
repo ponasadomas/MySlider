@@ -6,8 +6,7 @@ import { getSlideIndex } from '../utils/getSlideIndex';
 export const useNewSliderFlow = () => {
   const {
     sliderFlow,
-    sliderLogic,
-    currentSlideSlug
+    sliderLogic
   } = useSliderContext();
 
   let updatedFlow = sliderFlow;
@@ -20,9 +19,21 @@ export const useNewSliderFlow = () => {
     // on a slide that is not the last one in the sliderFlow, we need to remove
     // all slides after the current slide from the sliderFlow, so that we don't
     // add the wrong or same slides twice.
+    //
+    // Truncate at slideSlug (the slide being answered), NOT at the context's
+    // currentSlideSlug: on auto-advancing slides (radios) the context value can
+    // still be the PREVIOUS slide when the answer handler fires. Truncating one
+    // slide early cut the answered slide out of the flow and made the caller's
+    // `updatedFlow[currentSlideIndex + 1]` (indexed via slideSlug against the
+    // old flow) leapfrog the freshly inserted flowByAnswer slides — single-slide
+    // insertions after radio answers (e.g. a level page after a 3-way choice)
+    // were silently skipped. Checkbox/forward slides were unaffected because the
+    // extra click gave the context time to settle, which is why the bug hid.
     if (sliderLogic.flowByAnswer[slideSlug] || sliderLogic.flowAugmentation[slideSlug]) {
-      const currentSlideIndex = getSlideIndex(currentSlideSlug, sliderFlow);
-      updatedFlow = sliderFlow.slice(0, currentSlideIndex + 1);
+      const answeredSlideIndex = getSlideIndex(slideSlug, sliderFlow);
+      if (answeredSlideIndex !== -1) {
+        updatedFlow = sliderFlow.slice(0, answeredSlideIndex + 1);
+      }
     }
 
     // To deal with the situation where Slider needs to add additional slides
