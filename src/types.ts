@@ -525,7 +525,8 @@ export type SliderSettingsType = {
       | 'veilSweep'
       | 'starDissolve'
       | 'subtleScale'
-      | 'softRise';
+      | 'softRise'
+      | 'iosSpring';
     type: '#' | '/';
     clickDelay: number;
     progressBar?: { position: 'top' | 'bottom' };

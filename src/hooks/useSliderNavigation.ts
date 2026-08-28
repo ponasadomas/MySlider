@@ -16,6 +16,7 @@ import { useSliderVeilSweepAnimation } from '../animations/useSliderVeilSweepAni
 import { useSliderStarDissolveAnimation } from '../animations/useSliderStarDissolveAnimation';
 import { useSliderSubtleScaleAnimation } from '../animations/useSliderSubtleScaleAnimation';
 import { useSliderSoftRiseAnimation } from '../animations/useSliderSoftRiseAnimation';
+import { useSliderIosSpringAnimation } from '../animations/useSliderIosSpringAnimation';
 
 export function useSliderNavigation() {
   const {
@@ -62,6 +63,8 @@ export function useSliderNavigation() {
       ? useSliderSubtleScaleAnimation(handleAnimationComplete)
     : sliderSettings.navigation.slideAnimationDirection === 'softRise'
       ? useSliderSoftRiseAnimation(handleAnimationComplete)
+    : sliderSettings.navigation.slideAnimationDirection === 'iosSpring'
+      ? useSliderIosSpringAnimation(handleAnimationComplete)
     : useSliderHorizontalAnimation(handleAnimationComplete);
 
   const animateSpecialSlide = useSliderFadeAnimation(handleAnimationComplete);
