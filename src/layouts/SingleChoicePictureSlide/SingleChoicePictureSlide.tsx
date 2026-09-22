@@ -50,8 +50,24 @@ export function SingleChoicePictureSlide({
     calculateHeights();
     window.addEventListener('resize', calculateHeights);
 
+    // Re-measure once the section actually has a size. On mount the slide is
+    // not laid out yet, so the first pass reads 0px and the consumer's CSS
+    // (which centres the section from --section-height) puts it half its own
+    // height too low. Same observer as SingleChoiceSlide/MultipleChoiceSlide.
+    let resizeObserver: ResizeObserver | null = null;
+
+    if (sectionRef.current) {
+      resizeObserver = new ResizeObserver(() => {
+        calculateHeights();
+      });
+      resizeObserver.observe(sectionRef.current);
+    }
+
     return () => {
       window.removeEventListener('resize', calculateHeights);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
     };
   }, [calculateHeights]);
 
